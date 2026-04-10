@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Analysis — SynthScan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--bg:#F7F4EF;--surface:#ffffff;
+  --orange:#E8420A;--orange-light:#FFF0EB;--orange-mid:#FDDDD4;
+  --navy:#1B2B6B;--teal:#00A896;--teal-light:#E0F5F3;
+  --green:#16A34A;--green-light:#F0FDF4;--green-border:#BBF7D0;
+  --red:#DC2626;--red-light:#FEF2F2;--red-border:#FECACA;
+  --amber:#D97706;--amber-light:#FFFBEB;--amber-border:#FDE68A;
+  --text:#1A1A2E;--text-mid:#4B5563;--text-muted:#9CA3AF;
+  --border:#E5E7EB;--border-dark:#D1D5DB;
+  --shadow:0 2px 16px rgba(26,26,46,.07);
+  --shadow-lg:0 8px 40px rgba(26,26,46,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(247,244,239,.94);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:0 2.5rem;height:66px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-mark{width:36px;height:36px;background:var(--orange);border-radius:10px;
+  display:flex;align-items:center;justify-content:center}
+.nav-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);letter-spacing:-.02em}
+.nav-logo-text span{color:var(--orange)}
+.nav-right{display:flex;align-items:center;gap:16px}
+.nav-back{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:500;
+  color:var(--text-mid);text-decoration:none;transition:color .2s}
+.nav-back:hover{color:var(--orange)}
+.nav-badge{background:var(--orange-light);border:1px solid var(--orange-mid);
+  color:var(--orange);font-size:.78rem;font-weight:700;padding:5px 14px;
+  border-radius:20px;letter-spacing:.05em;font-family:'Syne',sans-serif}
+
+/* PAGE HEADER */
+.page-header{background:var(--white);border-bottom:1px solid var(--border);padding:2.5rem 2.5rem 2rem}
+.page-header-inner{max-width:1200px;margin:0 auto}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-muted);margin-bottom:1rem}
+.breadcrumb a{color:var(--text-muted);text-decoration:none}
+.breadcrumb a:hover{color:var(--orange)}
+.breadcrumb-sep{color:var(--border-dark)}
+.page-title{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;
+  color:var(--text);letter-spacing:-.025em;margin-bottom:.5rem}
+.page-title span{color:var(--orange)}
+.page-desc{font-size:1rem;color:var(--text-mid);line-height:1.6}
+
+/* MAIN LAYOUT */
+.main{max-width:1200px;margin:0 auto;padding:2rem 2.5rem;
+  display:grid;grid-template-columns:1fr 1.6fr;gap:1.75rem;align-items:start}
+@media(max-width:960px){.main{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--white);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;gap:10px;padding:16px 20px;
+  border-bottom:1px solid var(--border);background:var(--bg)}
+.card-header-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);flex-shrink:0}
+.card-header-title{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;
+  color:var(--text);letter-spacing:.1em;text-transform:uppercase}
+.card-body{padding:1.5rem}
+
+/* DROP ZONE */
+.drop{border:2px dashed var(--border-dark);border-radius:12px;height:200px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;cursor:pointer;transition:all .22s;background:var(--bg);
+  position:relative;overflow:hidden}
+.drop:hover,.drop.over{border-color:var(--orange);background:var(--orange-light)}
+.drop.over{transform:scale(1.01)}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{width:52px;height:52px;background:var(--orange-light);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--orange-mid)}
+.drop-main{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text)}
+.drop-sub{font-size:.8rem;color:var(--text-muted)}
+
+/* FILE INFO */
+.file-info{display:none;align-items:center;gap:12px;background:var(--bg);
+  border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:12px}
+.file-info.show{display:flex}
+.fi-icon{width:36px;height:36px;background:var(--orange-light);border:1px solid var(--orange-mid);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fi-name{font-size:.88rem;font-weight:600;color:var(--text);word-break:break-all}
+.fi-size{font-size:.78rem;color:var(--text-muted);margin-top:2px}
+
+/* SETTINGS */
+.settings{margin-top:1.1rem;display:flex;flex-direction:column;gap:12px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.setting-label{font-size:.85rem;font-weight:500;color:var(--text-mid)}
+.setting-label small{display:block;font-size:.75rem;color:var(--text-muted);font-weight:400;margin-top:1px}
+.setting-input{width:90px;height:36px;border:1px solid var(--border-dark);border-radius:8px;
+  padding:0 10px;font-family:'Outfit',sans-serif;font-size:.88rem;color:var(--text);
+  background:var(--bg);outline:none;text-align:center;transition:border-color .2s}
+.setting-input:focus{border-color:var(--orange)}
+
+/* ANALYZE BUTTON */
+.btn-analyze{width:100%;height:50px;background:var(--orange);color:white;border:none;
+  border-radius:10px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;
+  letter-spacing:.06em;cursor:pointer;transition:all .22s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-top:1.1rem;text-transform:uppercase;box-shadow:0 4px 16px rgba(232,66,10,.28)}
+.btn-analyze:hover:not(:disabled){background:#C93608;transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(232,66,10,.38)}
+.btn-analyze:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-analyze.loading{background:var(--bg);color:var(--orange);
+  border:2px solid var(--orange-mid);box-shadow:none}
+
+.err-box{background:var(--red-light);border:1px solid var(--red-border);border-radius:8px;
+  padding:10px 14px;font-size:.85rem;color:var(--red);margin-top:10px;display:none;line-height:1.5}
+.err-box.show{display:block}
+
+/* RESULTS PANEL STATES */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:380px;gap:14px;text-align:center}
+.ph-icon{width:64px;height:64px;background:var(--bg);border:2px dashed var(--border-dark);
+  border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ph-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text-mid)}
+.ph-sub{font-size:.85rem;color:var(--text-muted);max-width:280px;line-height:1.6}
+
+.scanning{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:380px;gap:20px}
+.scanning.on{display:flex}
+.spinner{width:48px;height:48px;border:3px solid var(--border);
+  border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text)}
+.scan-sub{font-size:.82rem;color:var(--text-muted);margin-top:2px;text-align:center}
+.scan-steps{display:flex;flex-direction:column;gap:8px;width:240px;margin-top:4px}
+.step{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--text-muted);transition:color .3s}
+.step.done{color:var(--orange)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--border-dark);flex-shrink:0;transition:background .3s}
+.step.done .sdot{background:var(--orange)}
+.blink{animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* RESULTS */
+#results{display:none}
+
+/* VERDICT */
+.verdict{display:flex;align-items:center;gap:14px;padding:1.1rem 1.4rem;
+  border-radius:12px;border:1.5px solid;margin-bottom:1.1rem}
+.verdict.deepfake{background:var(--red-light);border-color:var(--red-border)}
+.verdict.suspicious{background:var(--amber-light);border-color:var(--amber-border)}
+.verdict.authentic{background:var(--green-light);border-color:var(--green-border)}
+.v-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.verdict.deepfake .v-icon{background:#FEE2E2}
+.verdict.suspicious .v-icon{background:#FEF3C7}
+.verdict.authentic .v-icon{background:#DCFCE7}
+.v-tag{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;margin-bottom:3px}
+.verdict.deepfake .v-tag{color:var(--red)}
+.verdict.suspicious .v-tag{color:var(--amber)}
+.verdict.authentic .v-tag{color:var(--green)}
+.v-name{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;color:var(--text)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.1rem}
+.scard{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.sv{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--orange);display:block}
+.sk{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;display:block}
+
+/* GAUGE */
+.gauge-wrap{margin-bottom:1.25rem}
+.gauge-hd{display:flex;justify-content:space-between;margin-bottom:8px}
+.g-key{font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.g-val{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--orange)}
+.gtrack{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.gfill{height:100%;border-radius:4px;width:0;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.gfill.deepfake{background:linear-gradient(90deg,var(--amber),var(--red))}
+.gfill.suspicious{background:linear-gradient(90deg,#FCD34D,var(--amber))}
+.gfill.authentic{background:linear-gradient(90deg,var(--teal),var(--green))}
+
+/* SEC */
+.sec{margin-bottom:1.1rem}
+.sec-lbl{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);
+  margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* TIMELINE CHART */
+.chart-wrap{position:relative;width:100%;height:180px;background:var(--bg);
+  border:1px solid var(--border);border-radius:10px;overflow:hidden}
+canvas#timelineChart{width:100%;height:100%;display:block}
+.chart-tooltip{position:absolute;background:var(--navy);color:white;
+  font-size:.75rem;padding:6px 10px;border-radius:6px;pointer-events:none;
+  display:none;white-space:nowrap;font-family:'Outfit',sans-serif;line-height:1.5;z-index:10}
+.chart-axis-labels{display:flex;justify-content:space-between;
+  font-size:.72rem;color:var(--text-muted);margin-top:5px;padding:0 2px}
+
+/* FRAME TABLE */
+.frame-table-wrap{max-height:240px;overflow-y:auto;border:1px solid var(--border);
+  border-radius:10px;background:var(--white)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead{position:sticky;top:0;background:var(--bg);z-index:1}
+th{padding:8px 12px;text-align:left;font-family:'Syne',sans-serif;font-size:.7rem;
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+  border-bottom:1px solid var(--border)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text-mid)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.badge{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;
+  border-radius:10px;font-family:'Syne',sans-serif;letter-spacing:.04em}
+.badge.synth{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.badge.auth{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+
+.prob-bar{height:5px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden;width:80px}
+.prob-fill{height:100%;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Chatbot Toggle Button -->
+<button id="chat-toggle" onclick="toggleChat()" style="
+  position:fixed; bottom:24px; right:24px; z-index:1000;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color:white; border:none; border-radius:20px;
+  padding:12px 20px; font-size:14px; font-weight:600;
+  cursor:pointer; box-shadow:0 4px 20px rgba(99,102,241,0.5);
+  display:flex; align-items:center; gap:8px;
+  transition: transform 0.2s, box-shadow 0.2s;"
+  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(99,102,241,0.65)'"
+  onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(99,102,241,0.5)'">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  Ask AI
+</button>
+
+<div id="chat-window" style="
+  display:none; position:fixed; bottom:90px; right:24px; z-index:1000;
+  width:360px; height:480px; background:white; border-radius:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.2); flex-direction:column;">
+  <div style="background:#6366f1; color:white; padding:16px; border-radius:16px 16px 0 0; font-weight:bold;">
+    SynthScan Assistant
+    <span onclick="toggleChat()" style="float:right; cursor:pointer;">✕</span>
+  </div>
+  <div id="chat-messages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+  <div style="padding:12px; border-top:1px solid #eee; display:flex; gap:8px;">
+    <input id="chat-input" type="text" placeholder="Ask about deepfake detection..."
+      onkeydown="if(event.key==='Enter') sendMessage()"
+      style="flex:1; padding:8px 12px; border:1px solid #ddd; border-radius:8px; outline:none;" />
+    <button onclick="sendMessage()" style="background:#6366f1; color:white; border:none; border-radius:8px; padding:8px 14px; cursor:pointer;">Send</button>
+  </div>
+</div>
+
+<script>
+let chatHistory = [], chatOpen = false;
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-window').style.display = chatOpen ? 'flex' : 'none';
+  if (chatOpen && chatHistory.length === 0)
+    appendMessage('assistant', "Hi! I'm your SynthScan assistant. Ask me anything about deepfake or video analysis!");
+}
+function appendMessage(role, text) {
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.style.cssText = `max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;
+    ${role==='user'?'align-self:flex-end;background:#6366f1;color:white;border-bottom-right-radius:4px;'
+    :'align-self:flex-start;background:#f3f4f6;color:#111;border-bottom-left-radius:4px;'}`;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  appendMessage('user', message);
+  chatHistory.push({ role: 'user', text: message });
+  appendMessage('assistant', '...');
+  const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, history: chatHistory.slice(-10) }) });
+  const msgs = document.getElementById('chat-messages');
+  msgs.removeChild(msgs.lastChild);
+  const data = await res.json();
+  const reply = data.reply || data.error || 'Something went wrong.';
+  appendMessage('assistant', reply);
+  chatHistory.push({ role: 'assistant', text: reply });
+}
+</script>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="5" stroke="white" stroke-width="1.8"/>
+        <path d="M10 2v3M10 15v3M2 10h3M15 10h3" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="10" cy="10" r="2" fill="white"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">Synth<span>Scan</span></span>
+  </a>
+  <div class="nav-right">
+    <a href="analyze.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+      Image Model
+    </a>
+    <a href="batch.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Batch &amp; Monitor
+    </a>
+    <a href="webscan.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2c-1.5 1.5-2 3-2 5s.5 3.5 2 5M7 2c1.5 1.5 2 3 2 5s-.5 3.5-2 5M2 7h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Web Scanner
+    </a>
+    <a href="index.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10 7H4M7 4l-3 3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to Home
+    </a>
+    <div class="nav-badge">Video Analysis</div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="breadcrumb">
+      <a href="index.html">SynthScan</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>Video Analysis</span>
+    </div>
+    <h1 class="page-title">Video <span>Analysis</span></h1>
+    <p class="page-desc">Upload a video to detect deepfakes frame-by-frame. Frames are sampled with <strong>ffmpeg</strong>, each run through the AI detector, and results plotted as a synthetic probability timeline.</p>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: Upload + Settings -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-dot"></div>
+      <div class="card-header-title">Upload Video</div>
+    </div>
+    <div class="card-body">
+
+      <div class="drop" id="drop">
+        <div class="drop-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="#E8420A" stroke-width="1.8"/>
+            <polygon points="9,7 17,12 9,17" fill="#E8420A"/>
+          </svg>
+        </div>
+        <div class="drop-main">Drop video here or click to browse</div>
+        <div class="drop-sub">MP4 · MOV · AVI · WEBM</div>
+        <input type="file" id="fileIn" accept="video/*">
+      </div>
+
+      <div class="file-info" id="fileInfo">
+        <div class="fi-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="2" width="14" height="14" rx="3" stroke="#E8420A" stroke-width="1.5"/>
+            <polygon points="6,5 13,9 6,13" fill="#E8420A"/>
+          </svg>
+        </div>
+        <div>
+          <div class="fi-name" id="fiName">—</div>
+          <div class="fi-size" id="fiSize">—</div>
+        </div>
+      </div>
+
+      <div class="settings">
+        <div class="setting-row">
+          <div class="setting-label">
+            Frame Step (N)
+            <small>Sample every N-th frame</small>
+          </div>
+          <input type="number" class="setting-input" id="frameStep" value="30" min="1" max="300">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            Max Frames
+            <small>Hard cap on frames analysed</small>
+          </div>
+          <input type="number" class="setting-input" id="maxFrames" value="200" min="10" max="500">
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="analyzeBtn" disabled>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.6"/>
+          <polygon points="6.5,6 12.5,9 6.5,12" fill="currentColor"/>
+        </svg>
+        <span id="btnTxt">Analyze Video</span>
+      </button>
+
+      <div class="err-box" id="errBox"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-dot"></div>
+      <div class="card-header-title">Forensic Results</div>
+    </div>
+    <div class="card-body">
+
+      <div class="placeholder" id="ph">
+        <div class="ph-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="4" y="4" width="20" height="20" rx="5" stroke="#D1D5DB" stroke-width="2"/>
+            <polygon points="11,9 20,14 11,19" fill="#D1D5DB"/>
+          </svg>
+        </div>
+        <div class="ph-title">Awaiting Video</div>
+        <div class="ph-sub">Upload a video file and click Analyze to run frame-by-frame deepfake detection.</div>
+      </div>
+
+      <div class="scanning" id="scanning">
+        <div class="spinner"></div>
+        <div>
+          <div class="scan-title">Analyzing<span class="blink">...</span></div>
+          <div class="scan-sub">This may take a moment depending on video length</div>
+        </div>
+        <div class="scan-steps">
+          <div class="step" id="s1"><div class="sdot"></div>Probing video metadata</div>
+          <div class="step" id="s2"><div class="sdot"></div>Extracting frames via ffmpeg</div>
+          <div class="step" id="s3"><div class="sdot"></div>Running detector on each frame</div>
+          <div class="step" id="s4"><div class="sdot"></div>Building timeline report</div>
+        </div>
+      </div>
+
+      <div id="results">
+
+        <!-- VERDICT -->
+        <div class="verdict" id="verdict">
+          <div class="v-icon" id="vIcon"></div>
+          <div>
+            <div class="v-tag" id="vTag"></div>
+            <div class="v-name" id="vName"></div>
+          </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats">
+          <div class="scard"><span class="sv" id="svFrames">–</span><span class="sk">Frames</span></div>
+          <div class="scard"><span class="sv" id="svSynth">–</span><span class="sk">Synthetic</span></div>
+          <div class="scard"><span class="sv" id="svMean">–</span><span class="sk">Mean Prob</span></div>
+          <div class="scard"><span class="sv" id="svDuration">–</span><span class="sk">Duration</span></div>
+        </div>
+
+        <!-- GAUGE -->
+        <div class="gauge-wrap">
+          <div class="gauge-hd">
+            <span class="g-key">Mean Synthetic Probability</span>
+            <span class="g-val" id="gVal">0%</span>
+          </div>
+          <div class="gtrack"><div class="gfill" id="gFill"></div></div>
+        </div>
+
+        <!-- TIMELINE CHART -->
+        <div class="sec">
+          <div class="sec-lbl">Synthetic Probability Timeline</div>
+          <div class="chart-wrap" id="chartWrap">
+            <canvas id="timelineChart"></canvas>
+            <div class="chart-tooltip" id="tooltip"></div>
+          </div>
+          <div class="chart-axis-labels" id="axisLabels"></div>
+        </div>
+
+        <!-- FRAME TABLE -->
+        <div class="sec">
+          <div class="sec-lbl">Frame Details</div>
+          <div class="frame-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Frame #</th>
+                  <th>Image Snapshot</th> <th>Timestamp</th>
+                  <th>Verdict</th>
+                  <th>Probability</th>
+                </tr>
+              </thead>
+              <tbody id="frameTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let videoBlob = null;
+
+// ── Drag & Drop ──
+const drop = $('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video/')) loadFile(f);
+});
+$('fileIn').addEventListener('change', () => { if ($('fileIn').files[0]) loadFile($('fileIn').files[0]); });
+
+function loadFile(file) {
+  videoBlob = file;
+  $('fiName').textContent = file.name;
+  $('fiSize').textContent = formatBytes(file.size);
+  $('fileInfo').classList.add('show');
+  $('analyzeBtn').disabled = false;
+  clearErr(); resetResults();
+}
+
+function formatBytes(b) {
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ── Analyze ──
+$('analyzeBtn').addEventListener('click', run);
+
+async function run() {
+  if (!videoBlob) { showErr('Please upload a video file first.'); return; }
+
+  $('analyzeBtn').disabled = true;
+  $('btnTxt').textContent = 'Analyzing...';
+  $('analyzeBtn').classList.add('loading');
+  clearErr(); showScanning();
+
+  // Animate steps
+  const delays = [400, 1200, 2200, 3400];
+  ['s1','s2','s3','s4'].forEach((id, i) => setTimeout(() => $(id).classList.add('done'), delays[i]));
+
+  try {
+    const fd = new FormData();
+    fd.append('video', videoBlob);
+    fd.append('frame_step', $('frameStep').value);
+    fd.append('max_frames', $('maxFrames').value);
+
+    const res = await fetch('/analyze-video', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+    const data = await res.json();
+    showResults(data);
+  } catch (e) {
+    showErr('Analysis failed: ' + e.message);
+    resetResults();
+  } finally {
+    $('analyzeBtn').disabled = false;
+    $('btnTxt').textContent = 'Analyze Video';
+    $('analyzeBtn').classList.remove('loading');
+  }
+}
+
+// ── Display Results ──
+function showResults(data) {
+  $('scanning').classList.remove('on');
+  $('results').style.display = 'block';
+
+  const s = data.summary;
+  const mean = s.mean_synthetic_probability;
+  const verdictClass = s.verdict === 'LIKELY_DEEPFAKE' ? 'deepfake'
+    : s.verdict === 'POSSIBLY_MANIPULATED' ? 'suspicious' : 'authentic';
+
+  // Verdict
+  $('verdict').className = 'verdict ' + verdictClass;
+  const icons = {
+    deepfake: `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3l8 14H3L11 3z" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.5" stroke-linejoin="round"/><path d="M11 9v3.5M11 14.5v.5" stroke="#DC2626" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    suspicious: `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/><path d="M11 7v4.5M11 13.5v.5" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    authentic: `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/><path d="M7.5 11l3 3L14.5 8" stroke="#16A34A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+  };
+  const labels = {
+    deepfake: ['⚠ Deepfake Detected', 'Likely AI-Generated Video'],
+    suspicious: ['⚠ Suspicious Content', 'Possibly Manipulated'],
+    authentic: ['✓ Authentic Video', 'No Deepfake Detected']
+  };
+  $('vIcon').innerHTML = icons[verdictClass];
+  $('vTag').textContent = labels[verdictClass][0];
+  $('vName').textContent = labels[verdictClass][1];
+
+  // Stats
+  $('svFrames').textContent = data.total_frames_sampled;
+  $('svSynth').textContent = s.synthetic_frame_count;
+  $('svMean').textContent = Math.round(mean * 100) + '%';
+  $('svDuration').textContent = formatDuration(data.duration_seconds);
+
+  // Gauge
+  const fill = $('gFill');
+  fill.className = 'gfill ' + verdictClass;
+  $('gVal').textContent = Math.round(mean * 100) + '%';
+  setTimeout(() => { fill.style.width = Math.round(mean * 100) + '%'; }, 100);
+
+  // Chart
+  drawTimeline(data.timeline, data.fps);
+
+  // Table
+  // Table
+  const tbody = $('frameTableBody');
+  tbody.innerHTML = '';
+  data.timeline.forEach(f => {
+    const isSynth = f.label === 'SYNTHETIC';
+    const pct = Math.round(f.synthetic_probability * 100);
+    const probColor = isSynth ? '#DC2626' : '#16A34A';
+    
+    // --- NEW CODE: Create the image tag if it exists ---
+    const imgCell = isSynth && f.image_base64 
+      ? `<img src="data:image/png;base64,${f.image_base64}" style="height:48px; border-radius:6px; object-fit:cover; border: 1px solid var(--border);">`
+      : `<span style="color:var(--border-dark); font-size: 0.8rem;">—</span>`;
+    // ---------------------------------------------------
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'Syne',sans-serif;font-weight:600;color:var(--text)">${f.frame_index}</td>
+      <td>${imgCell}</td> <td>${formatDuration(f.timestamp_seconds)}</td>
+      <td><span class="badge ${isSynth ? 'synth' : 'auth'}">${f.label}</span></td>
+      <td>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;color:${probColor};font-size:.85rem">${pct}%</span>
+        <div class="prob-bar"><div class="prob-fill" style="width:${pct}%;background:${probColor}"></div></div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Timeline Chart ──
+function drawTimeline(timeline, fps) {
+  const canvas = $('timelineChart');
+  const wrap = $('chartWrap');
+  canvas.width = wrap.clientWidth || 600;
+  canvas.height = 180;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 14, right: 16, bottom: 28, left: 40 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#E5E7EB';
+  ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+    const y = pad.top + ch - v * ch;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = '10px Outfit,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(v * 100) + '%', pad.left - 6, y + 3.5);
+  });
+
+  if (!timeline.length) return;
+
+  // Threshold line at 50%
+  const thY = pad.top + ch * 0.5;
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = '#D1D5DB';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, thY); ctx.lineTo(pad.left + cw, thY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Fill area
+  const pts = timeline.map((f, i) => ({
+    x: pad.left + (i / Math.max(timeline.length - 1, 1)) * cw,
+    y: pad.top + ch - f.synthetic_probability * ch,
+    prob: f.synthetic_probability,
+    frame: f.frame_index,
+    ts: f.timestamp_seconds,
+    label: f.label
+  }));
+
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+  grad.addColorStop(0, 'rgba(232,66,10,0.22)');
+  grad.addColorStop(1, 'rgba(232,66,10,0.02)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.top + ch);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, pad.top + ch);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#E8420A';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  // Dots for synthetic frames
+  pts.forEach(p => {
+    if (p.label === 'SYNTHETIC') {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#DC2626';
+      ctx.fill();
+    }
+  });
+
+  // Axis labels
+  const axisEl = $('axisLabels');
+  axisEl.innerHTML = '';
+  const labelCount = Math.min(timeline.length, 6);
+  for (let i = 0; i < labelCount; i++) {
+    // FIX: Safely handle the math if there is only 1 frame to prevent dividing by zero
+    const idx = labelCount <= 1 ? 0 : Math.round(i / (labelCount - 1) * (timeline.length - 1));
+    const span = document.createElement('span');
+    span.textContent = formatDuration(timeline[idx].timestamp_seconds);
+    axisEl.appendChild(span);
+  }
+
+  // Tooltip on hover
+  canvas.onmousemove = e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const idx = Math.round((mx - pad.left) / cw * (pts.length - 1));
+    if (idx < 0 || idx >= pts.length) { $('tooltip').style.display = 'none'; return; }
+    const p = pts[idx];
+    const tip = $('tooltip');
+    tip.innerHTML = `<strong>Frame ${p.frame}</strong> · ${formatDuration(p.ts)}<br>${p.label} · ${Math.round(p.prob * 100)}% synthetic`;
+    tip.style.display = 'block';
+    const tx = Math.min(p.x, W - 160);
+    tip.style.left = tx + 'px';
+    tip.style.top = (p.y - 52) + 'px';
+  };
+  canvas.onmouseleave = () => { $('tooltip').style.display = 'none'; };
+}
+
+function formatDuration(secs) {
+  if (secs < 60) return secs.toFixed(1) + 's';
+  const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// ── UI State ──
+function showScanning() {
+  $('ph').style.display = 'none';
+  $('scanning').classList.add('on');
+  $('results').style.display = 'none';
+  ['s1','s2','s3','s4'].forEach(id => $(id).classList.remove('done'));
+}
+function resetResults() {
+  $('ph').style.display = 'flex';
+  $('scanning').classList.remove('on');
+  $('results').style.display = 'none';
+}
+function showErr(m) { $('errBox').textContent = '⚠ ' + m; $('errBox').classList.add('show'); }
+function clearErr() { $('errBox').classList.remove('show'); }
+</script>
+</body>
+</html>

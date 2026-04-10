@@ -1,0 +1,15 @@
+flask>=3.0.0
+flask-cors>=4.0.0
+torch>=2.2.0
+torchvision>=0.17.0
+transformers>=4.40.0
+grad-cam>=1.5.0
+Pillow>=10.0.0
+opencv-python-headless>=4.9.0
+numpy>=1.26.0
+beautifulsoup4>=4.12.0
+watchdog>=4.0.0
+ffmpeg-python>=0.2.0
+groq>=0.9.0
+huggingface_hub>=0.23.0
+gunicorn>=22.0.0
