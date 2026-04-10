@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SynthScan — AI Image Forensics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #ffffff;
+    --off:   #f5f7ff;
+    --bg:    #eef1fb;
+    --blue:  #1a5fff;
+    --blue2: #0a3fcc;
+    --blue-light: #e8eeff;
+    --blue-glow: rgba(26,95,255,0.12);
+    --coral: #ff4757;
+    --emerald: #00c97a;
+    --amber: #ff8c00;
+    --ink:   #0d1526;
+    --ink2:  #3a4a6b;
+    --ink3:  #7a8aab;
+    --border: rgba(26,95,255,0.12);
+    --shadow: 0 4px 24px rgba(13,21,38,0.08);
+    --shadow-lg: 0 12px 48px rgba(13,21,38,0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--white);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 3rem; height: 64px;
+  }
+
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .nav-logo-mark {
+    width: 32px; height: 32px;
+    background: var(--blue);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-logo-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px; font-weight: 600;
+    color: var(--ink); letter-spacing: -0.02em;
+  }
+  .nav-logo-text span { color: var(--blue); }
+
+  .nav-links {
+    display: flex; align-items: center; gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    text-decoration: none; color: var(--ink2);
+    font-size: 14px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--blue); }
+
+  .nav-cta {
+    background: var(--blue); color: #fff !important;
+    padding: 8px 20px; border-radius: 8px;
+    font-weight: 600 !important;
+    transition: background 0.2s, transform 0.2s !important;
+    box-shadow: 0 2px 12px rgba(26,95,255,0.28);
+  }
+  .nav-cta:hover {
+    background: var(--blue2) !important;
+    transform: translateY(-1px);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 6rem 3rem 4rem;
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4rem; align-items: center;
+  }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding: 4rem 1.5rem 3rem; }
+    nav { padding: 0 1.5rem; }
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue-light);
+    border: 1px solid rgba(26,95,255,0.2);
+    color: var(--blue); border-radius: 20px;
+    padding: 5px 14px; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .hero-badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--blue); animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    line-height: 1.1; color: var(--ink);
+    letter-spacing: -0.02em; margin-bottom: 1.25rem;
+  }
+  .hero h1 em {
+    font-style: italic; color: var(--blue);
+  }
+
+  .hero-sub {
+    font-size: 1.1rem; line-height: 1.7;
+    color: var(--ink2); margin-bottom: 2rem;
+    max-width: 480px;
+  }
+
+  .hero-actions {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue); color: #fff;
+    padding: 14px 28px; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(26,95,255,0.35);
+    transition: all 0.2s;
+  }
+  .btn-primary:hover {
+    background: var(--blue2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(26,95,255,0.4);
+  }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--ink);
+    padding: 14px 24px; border-radius: 10px;
+    font-size: 15px; font-weight: 500;
+    text-decoration: none; border: 1.5px solid var(--border);
+    transition: all 0.2s; cursor: pointer;
+  }
+  .btn-secondary:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: var(--blue-light);
+  }
+
+  /* Hero illustration / demo card */
+  .hero-visual {
+    position: relative;
+  }
+
+  .demo-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    animation: float 5s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .demo-card-bar {
+    background: var(--off);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dc-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dc-dot:nth-child(1) { background: #ff5f57; }
+  .dc-dot:nth-child(2) { background: #febc2e; }
+  .dc-dot:nth-child(3) { background: #28c840; }
+
+  .demo-img-area {
+    background: linear-gradient(135deg, #e8eeff 0%, #f0f4ff 100%);
+    height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+
+  .demo-img-area svg { opacity: 0.3; }
+
+  /* scan line animation */
+  .demo-img-area::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    animation: scanH 2.5s ease-in-out infinite;
+    top: 0;
+  }
+  @keyframes scanH {
+    0% { top: 0; opacity: 1; }
+    100% { top: 100%; opacity: 0.3; }
+  }
+
+  .demo-heatmap-strip {
+    height: 6px;
+    background: linear-gradient(90deg, #1a5fff, #00c97a, #ff8c00, #ff4757);
+  }
+
+  .demo-result {
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .demo-verdict {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .verdict-pill {
+    background: rgba(255,71,87,0.1);
+    color: var(--coral);
+    border: 1px solid rgba(255,71,87,0.25);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .verdict-pill.auth {
+    background: rgba(0,201,122,0.1);
+    color: var(--emerald);
+    border-color: rgba(0,201,122,0.25);
+  }
+
+  .demo-conf {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink2);
+  }
+
+  /* small floating badges */
+  .badge-float {
+    position: absolute;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 8px 14px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    font-size: 12px; font-weight: 600;
+    white-space: nowrap;
+    animation: floatBadge 4s ease-in-out infinite;
+  }
+  .badge-float:nth-child(2) { animation-delay: 1.5s; }
+
+  @keyframes floatBadge {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .bf1 { top: -14px; left: -20px; color: var(--coral); }
+  .bf2 { bottom: -10px; right: -16px; color: var(--emerald); }
+  .bf1 span, .bf2 span { font-size: 14px; margin-right: 4px; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--off);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex; justify-content: center; gap: 5rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem; color: var(--blue);
+    display: block; line-height: 1;
+  }
+  .stat-lbl { font-size: 13px; color: var(--ink3); margin-top: 4px; }
+
+  /* ── HOW IT WORKS ── */
+  .section {
+    padding: 5rem 3rem;
+    max-width: 1200px; margin: 0 auto;
+  }
+
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--blue);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    line-height: 1.15; color: var(--ink);
+    letter-spacing: -0.02em; margin-bottom: 1rem;
+  }
+
+  .section-sub {
+    font-size: 1rem; color: var(--ink2);
+    max-width: 520px; line-height: 1.7;
+  }
+
+  .steps-grid {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 1.5rem; margin-top: 3rem;
+  }
+  @media (max-width: 700px) { .steps-grid { grid-template-columns: 1fr; } }
+
+  .step-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.75rem;
+    position: relative; overflow: hidden;
+    transition: box-shadow 0.25s, transform 0.25s;
+  }
+  .step-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+  }
+
+  .step-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3.5rem; color: var(--blue-light);
+    line-height: 1; margin-bottom: 0.5rem;
+    letter-spacing: -0.04em;
+  }
+
+  .step-icon {
+    width: 44px; height: 44px;
+    background: var(--blue-light);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .step-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink); }
+  .step-desc { font-size: 0.92rem; color: var(--ink2); line-height: 1.65; }
+
+  /* ── FEATURES ── */
+  .features-bg {
+    background: linear-gradient(180deg, var(--white) 0%, var(--off) 100%);
+    padding: 4rem 0;
+  }
+
+  .features-grid {
+    display: grid; grid-template-columns: repeat(2,1fr);
+    gap: 1.25rem; margin-top: 3rem;
+  }
+  @media (max-width: 700px) { .features-grid { grid-template-columns: 1fr; } }
+
+  .feat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.5rem 1.75rem;
+    display: flex; gap: 1rem; align-items: flex-start;
+    transition: box-shadow 0.2s;
+  }
+  .feat-card:hover { box-shadow: var(--shadow); }
+
+  .feat-icon-wrap {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fi-blue { background: var(--blue-light); }
+  .fi-coral { background: rgba(255,71,87,0.1); }
+  .fi-emerald { background: rgba(0,201,122,0.1); }
+  .fi-amber { background: rgba(255,140,0,0.1); }
+
+  .feat-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; color: var(--ink); }
+  .feat-desc { font-size: 0.88rem; color: var(--ink2); line-height: 1.6; }
+
+  /* ── CTA BANNER ── */
+  .cta-section {
+    padding: 5rem 3rem;
+    text-align: center;
+    max-width: 700px; margin: 0 auto;
+  }
+
+  .cta-section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem,4vw,3rem);
+    line-height: 1.1; margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  .cta-section h2 em { font-style: italic; color: var(--blue); }
+  .cta-section p { color: var(--ink2); margin-bottom: 2rem; font-size: 1rem; }
+
+  .cta-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--ink);
+    color: rgba(255,255,255,0.5);
+    padding: 2rem 3rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; flex-wrap: wrap; gap: 1rem;
+  }
+  footer span { color: rgba(255,255,255,0.8); }
+  footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+  footer a:hover { color: #fff; }
+
+  /* ── PAGE TRANSITION ── */
+  .page-enter { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── REVIEWS ── */
+  .reviews-section {
+    background: var(--off);
+    padding: 5rem 3rem;
+  }
+  .reviews-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 3rem;
+    align-items: start;
+    margin-top: 2.5rem;
+  }
+  @media (max-width: 780px) {
+    .reviews-grid { grid-template-columns: 1fr; }
+    .reviews-section { padding: 3.5rem 1.5rem; }
+  }
+
+  /* Form */
+  .review-form-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+  }
+  .review-form-card h3 {
+    font-size: 1.1rem; font-weight: 600;
+    color: var(--ink); margin-bottom: 1.5rem;
+  }
+  .review-field { margin-bottom: 1rem; }
+  .review-field label {
+    display: block; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink3); margin-bottom: 6px;
+  }
+  .review-field input,
+  .review-field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; color: var(--ink);
+    background: var(--off);
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+  .review-field input:focus,
+  .review-field textarea:focus { border-color: var(--blue); background: #fff; }
+  .review-field textarea { min-height: 90px; }
+
+  /* Star picker */
+  .star-picker { display: flex; gap: 6px; }
+  .star-picker button {
+    background: none; border: none; cursor: pointer;
+    font-size: 24px; line-height: 1;
+    color: #d0d8ef;
+    transition: color 0.15s, transform 0.1s;
+    padding: 0;
+  }
+  .star-picker button.active,
+  .star-picker button.hovered { color: #f5a623; }
+  .star-picker button:hover { transform: scale(1.2); }
+
+  .review-submit {
+    width: 100%;
+    margin-top: 1.2rem;
+    padding: 12px;
+    background: var(--blue); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    box-shadow: 0 2px 12px rgba(26,95,255,0.28);
+  }
+  .review-submit:hover { background: var(--blue2); transform: translateY(-1px); }
+  .review-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .review-form-msg {
+    font-size: 13px; text-align: center; margin-top: 10px;
+    min-height: 18px;
+  }
+  .review-form-msg.success { color: var(--emerald); }
+  .review-form-msg.error   { color: var(--coral); }
+
+  /* Review cards list */
+  .review-list { display: flex; flex-direction: column; gap: 1rem; }
+  .review-empty {
+    color: var(--ink3); font-size: 14px; text-align: center;
+    padding: 2rem; background: var(--white);
+    border: 1px dashed var(--border); border-radius: 12px;
+  }
+  .review-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease;
+  }
+  .review-card-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem; flex-wrap: wrap; gap: 4px;
+  }
+  .review-card-name {
+    font-weight: 600; font-size: 14px; color: var(--ink);
+  }
+  .review-card-meta {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .review-card-stars { color: #f5a623; font-size: 14px; }
+  .review-card-date { font-size: 11px; color: var(--ink3); }
+  .review-card-text { font-size: 14px; color: var(--ink2); line-height: 1.6; }
+
+  .reviews-summary {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .reviews-avg {
+    font-size: 2.8rem; font-weight: 700;
+    font-family: 'DM Serif Display', serif;
+    color: var(--ink); line-height: 1;
+  }
+  .reviews-avg-detail { display: flex; flex-direction: column; gap: 2px; }
+  .reviews-avg-stars { color: #f5a623; font-size: 18px; }
+  .reviews-avg-count { font-size: 13px; color: var(--ink3); }
+</style>
+</head>
+<body class="page-enter">
+
+<!-- Chatbot Toggle Button -->
+<button id="chat-toggle" onclick="toggleChat()" style="
+  position:fixed; bottom:24px; right:24px; z-index:1000;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color:white; border:none; border-radius:20px;
+  padding:12px 20px; font-size:14px; font-weight:600;
+  cursor:pointer; box-shadow:0 4px 20px rgba(99,102,241,0.5);
+  display:flex; align-items:center; gap:8px;
+  transition: transform 0.2s, box-shadow 0.2s;"
+  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(99,102,241,0.65)'"
+  onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(99,102,241,0.5)'">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  Ask AI
+</button>
+
+
+<!-- Chat Window -->
+<div id="chat-window" style="
+  position:fixed; bottom:90px; right:24px; z-index:1000;
+  width:360px; height:480px; background:white; border-radius:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.2); display:none; flex-direction:column;">
+
+  <div style="background:#6366f1; color:white; padding:16px; border-radius:16px 16px 0 0; font-weight:bold;">
+    SynthScan Assistant
+    <span onclick="toggleChat()" style="float:right; cursor:pointer;">✕</span>
+  </div>
+
+  <div id="chat-messages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+
+  <div style="padding:12px; border-top:1px solid #eee; display:flex; gap:8px;">
+    <input id="chat-input" type="text" placeholder="Ask about AI image detection..."
+      onkeydown="if(event.key==='Enter') sendMessage()"
+      style="flex:1; padding:8px 12px; border:1px solid #ddd; border-radius:8px; outline:none;" />
+    <button onclick="sendMessage()" style="
+      background:#6366f1; color:white; border:none; border-radius:8px;
+      padding:8px 14px; cursor:pointer;">Send</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="4.5" stroke="white" stroke-width="1.5"/>
+        <path d="M9 1v3M9 14v3M1 9h3M14 9h3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="9" cy="9" r="1.5" fill="white"/>
+      </svg>
+    </div>
+    <div class="nav-logo-text">Synth<span>Scan</span></div>
+  </a>
+
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="analyze.html">Image Model</a></li>
+    <li><a href="batch.html">Batch &amp; Monitor</a></li>
+    <li><a href="webscan.html">Web Scanner</a></li>
+    <li><a href="video.html">Video Analysis</a></li>
+    <li><a href="#reviews">Reviews</a></li> <li><a href="analyze.html" class="nav-cta">Try it Free →</a></li>  </ul>
+</nav>
+
+<!-- HERO -->
+<section>
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        AI-Powered Forensics
+      </div>
+      <h1>Spot <em>Fake</em> Images<br>Before They Fool You</h1>
+      <p class="hero-sub">
+        SynthScan uses a fine-tuned Vision Transformer to detect AI-generated images in seconds — 
+        with pixel-level heatmaps showing exactly <em>where</em> synthetic artifacts appear.
+      </p>
+      <div class="hero-actions">
+        <a href="analyze.html" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 8l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Analyze an Image
+        </a>
+        <a href="#how-it-works" class="btn-secondary">How it works</a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="badge-float bf1"><span>⚠</span>97.3% Synthetic</div>
+      <div class="badge-float bf2"><span>✓</span>Authentic Photo</div>
+      <div class="demo-card">
+        <div class="demo-card-bar">
+          <div class="dc-dot"></div><div class="dc-dot"></div><div class="dc-dot"></div>
+          <span style="font-size:12px;color:#7a8aab;margin-left:8px;font-family:'JetBrains Mono',monospace">synthscan — analyze.py</span>
+        </div>
+        <div class="demo-img-area">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <rect x="8" y="8" width="64" height="64" rx="8" stroke="#1a5fff" stroke-width="2"/>
+            <circle cx="30" cy="32" r="8" stroke="#1a5fff" stroke-width="2"/>
+            <path d="M8 56l18-16 14 14 12-12 20 18" stroke="#1a5fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="demo-heatmap-strip"></div>
+        <div class="demo-result">
+          <div class="demo-verdict">
+            <span class="verdict-pill">⚠ SYNTHETIC</span>
+            <span style="font-size:13px;color:#7a8aab">GAN fingerprint</span>
+          </div>
+          <span class="demo-conf">97.3%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num">97.4%</span>
+    <div class="stat-lbl">Detection Accuracy</div>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">&lt; 3s</span>
+    <div class="stat-lbl">Analysis Time</div>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">Free</span>
+    <div class="stat-lbl">Via HuggingFace API</div>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">ViT</span>
+    <div class="stat-lbl">Vision Transformer</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section">
+    <div class="section-eyebrow">// HOW IT WORKS</div>
+    <h2 class="section-title">Three steps to forensic truth</h2>
+    <p class="section-sub">Our pipeline combines a pre-trained Vision Transformer with Grad-CAM visualization for explainable results.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="2" y="2" width="18" height="18" rx="4" stroke="#1a5fff" stroke-width="1.5"/>
+            <circle cx="8.5" cy="8.5" r="2.5" stroke="#1a5fff" stroke-width="1.5"/>
+            <path d="M2 15l5-4 4 4 3-3 6 6" stroke="#1a5fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="step-title">Upload your image</div>
+        <div class="step-desc">Drag and drop or browse any image — JPEG, PNG, or WEBP up to 10MB.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M4 11h14M11 4l7 7-7 7" stroke="#1a5fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="step-title">ViT model inference</div>
+        <div class="step-desc">The <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#e8eeff;padding:1px 5px;border-radius:3px">umm-maybe/AI-image-detector</code> model analyzes pixel-level patterns across the full image.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="3" y="3" width="16" height="16" rx="3" stroke="#1a5fff" stroke-width="1.5"/>
+            <path d="M7 11l3 3 5-6" stroke="#1a5fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="step-title">Heatmap + verdict</div>
+        <div class="step-desc">Grad-CAM generates a pixel-level heatmap highlighting <em>exactly</em> which regions triggered the synthetic detection.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="features-bg">
+  <div class="section" style="padding-top:2rem;padding-bottom:2rem">
+    <div class="section-eyebrow">// CAPABILITIES</div>
+    <h2 class="section-title">Built for real forensic work</h2>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-coral">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2l8 14H2L10 2z" stroke="#ff4757" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M10 8v4M10 14.5v.5" stroke="#ff4757" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">GAN & Diffusion Detection</div>
+          <div class="feat-desc">Detects outputs from Stable Diffusion, Midjourney, DALL-E, StyleGAN, and other generative models.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-blue">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="2" width="16" height="16" rx="3" stroke="#1a5fff" stroke-width="1.5"/>
+            <path d="M2 10h16M10 2v16" stroke="#1a5fff" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">Pixel-Level Heatmaps</div>
+          <div class="feat-desc">Grad-CAM overlays pinpoint exactly which regions of the image exhibit synthetic patterns — not just a yes/no verdict.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-emerald">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="7" stroke="#00c97a" stroke-width="1.5"/>
+            <path d="M7 10l2.5 2.5L13 8" stroke="#00c97a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">Confidence Score</div>
+          <div class="feat-desc">Every result comes with a probability score and risk level, so you know exactly how certain the model is.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap fi-amber">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2v4M10 14v4M2 10h4M14 10h4" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="10" cy="10" r="3.5" stroke="#ff8c00" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">100% Free</div>
+          <div class="feat-desc">Powered by HuggingFace's free Inference API. Just sign up and get a token — no credit card required.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:rgba(124,58,237,0.1)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="5" width="16" height="12" rx="2" stroke="#7C3AED" stroke-width="1.5"/>
+            <path d="M6 5V4a2 2 0 0 1 4 0v1M2 9h16" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">Batch Directory Upload</div>
+          <div class="feat-desc">Drop a whole folder and analyze up to 20 images at once — get a sortable results table and CSV export.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:rgba(0,168,150,0.1)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="7" stroke="#00A896" stroke-width="1.5"/>
+            <path d="M10 6v4l2.5 2" stroke="#00A896" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="10" cy="3" r="1" fill="#00A896"/>
+          </svg>
+        </div>
+        <div>
+          <div class="feat-title">Real-Time Folder Monitor</div>
+          <div class="feat-desc">Point SynthScan at any local folder and watch new images get automatically scanned via live SSE event streaming.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<!-- REVIEWS -->
+<section class="reviews-section" id="reviews">
+  <div class="reviews-inner">
+    <div class="section-eyebrow">// USER REVIEWS</div>
+    <h2 class="section-title">What people are saying</h2>
+    <p class="section-sub">Tried SynthScan? Leave a review and help others understand what it can do.</p>
+
+    <div class="reviews-grid">
+      <!-- Submit form -->
+      <div class="review-form-card">
+        <h3>Leave a review</h3>
+
+        <div class="review-field">
+          <label>Your name</label>
+          <input id="rv-name" type="text" placeholder="e.g. Alex M." maxlength="80">
+        </div>
+
+        <div class="review-field">
+          <label>Rating</label>
+          <div class="star-picker" id="star-picker">
+            <button type="button" data-v="1" aria-label="1 star">★</button>
+            <button type="button" data-v="2" aria-label="2 stars">★</button>
+            <button type="button" data-v="3" aria-label="3 stars">★</button>
+            <button type="button" data-v="4" aria-label="4 stars">★</button>
+            <button type="button" data-v="5" aria-label="5 stars">★</button>
+          </div>
+        </div>
+
+        <div class="review-field">
+          <label>Your review</label>
+          <textarea id="rv-text" placeholder="How did SynthScan help you?" maxlength="1000"></textarea>
+        </div>
+
+        <button class="review-submit" id="rv-submit" onclick="submitReview()">Submit Review</button>
+        <div class="review-form-msg" id="rv-msg"></div>
+      </div>
+
+      <!-- Review list -->
+      <div>
+        <div class="reviews-summary" id="reviews-summary" style="display:none">
+          <div class="reviews-avg" id="avg-score">—</div>
+          <div class="reviews-avg-detail">
+            <div class="reviews-avg-stars" id="avg-stars"></div>
+            <div class="reviews-avg-count" id="avg-count"></div>
+          </div>
+        </div>
+        <div class="review-list" id="review-list">
+          <div class="review-empty">Loading reviews…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-section">
+  <h2>Ready to detect <em>synthetic</em> images?</h2>
+  <p>Upload your first image and get a forensic analysis in under 3 seconds.</p>
+  <div class="cta-row">
+    <a href="analyze.html" class="btn-primary" style="font-size:16px;padding:16px 32px;">
+      Open Image Model →
+    </a>
+    <a href="batch.html" class="btn-secondary" style="font-size:15px;padding:14px 24px;">
+      Batch &amp; Monitor
+    </a>
+    <a href="https://huggingface.co/settings/tokens" target="_blank" class="btn-secondary">
+      Get Free HF Token
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    © 2026 <span>SynthScan</span> · AI Image Forensics
+  </div>
+  <div style="display:flex;gap:1.5rem">
+    <a href="index.html">Home</a>
+    <a href="analyze.html">Image Model</a>
+    <a href="batch.html">Batch &amp; Monitor</a>
+    <a href="#reviews">Reviews</a>
+    <a href="https://huggingface.co/umm-maybe/AI-image-detector" target="_blank">Model Card</a>
+  </div>
+</footer>
+
+<script>
+  let chatHistory = [];
+  let chatOpen = false;
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chat-window').style.display = chatOpen ? 'flex' : 'none';
+    if (chatOpen && chatHistory.length === 0) {
+      appendMessage('assistant', "Hi! I'm your SynthScan assistant. Ask me anything about AI image detection!");
+    }
+  }
+
+  function appendMessage(role, text) {
+    const box = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.style.cssText = `
+      max-width:80%; padding:10px 14px; border-radius:12px; font-size:14px; line-height:1.5;
+      ${role === 'user'
+        ? 'align-self:flex-end; background:#6366f1; color:white; border-bottom-right-radius:4px;'
+        : 'align-self:flex-start; background:#f3f4f6; color:#111; border-bottom-left-radius:4px;'}
+    `;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    appendMessage('user', message);
+    chatHistory.push({ role: 'user', text: message });
+
+    appendMessage('assistant', '...');
+
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, history: chatHistory.slice(-10) })
+    });
+
+    const msgs = document.getElementById('chat-messages');
+    msgs.removeChild(msgs.lastChild);
+
+    const data = await res.json();
+    const reply = data.reply || data.error || 'Something went wrong.';
+    appendMessage('assistant', reply);
+    chatHistory.push({ role: 'assistant', text: reply });
+  }
+</script>
+
+<script>
+/* ── REVIEWS ── */
+let _selectedRating = 0;
+
+// Star picker interactions
+document.querySelectorAll('#star-picker button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    _selectedRating = parseInt(btn.dataset.v);
+    updateStars(_selectedRating, _selectedRating);
+  });
+  btn.addEventListener('mouseenter', () => updateStars(_selectedRating, parseInt(btn.dataset.v)));
+  btn.addEventListener('mouseleave', () => updateStars(_selectedRating, _selectedRating));
+});
+
+function updateStars(selected, hovered) {
+  document.querySelectorAll('#star-picker button').forEach(b => {
+    const v = parseInt(b.dataset.v);
+    b.classList.toggle('active',   v <= selected);
+    b.classList.toggle('hovered',  v <= hovered && v > selected);
+  });
+}
+
+function starsHtml(n) {
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+function timeAgo(ts) {
+  const s = Math.floor(Date.now() / 1000) - ts;
+  if (s < 60)  return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function renderReviews(reviews) {
+  const list = document.getElementById('review-list');
+  const summary = document.getElementById('reviews-summary');
+
+  if (!reviews.length) {
+    list.innerHTML = '<div class="review-empty">No reviews yet — be the first!</div>';
+    summary.style.display = 'none';
+    return;
+  }
+
+  // Summary bar
+  const avg = (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1);
+  document.getElementById('avg-score').textContent = avg;
+  document.getElementById('avg-stars').textContent = starsHtml(Math.round(avg));
+  document.getElementById('avg-count').textContent = reviews.length + ' review' + (reviews.length !== 1 ? 's' : '');
+  summary.style.display = 'flex';
+
+  list.innerHTML = reviews.map(r => `
+    <div class="review-card">
+      <div class="review-card-header">
+        <span class="review-card-name">${escHtml(r.name)}</span>
+        <div class="review-card-meta">
+          <span class="review-card-stars">${starsHtml(r.rating)}</span>
+          <span class="review-card-date">${timeAgo(r.created_at)}</span>
+        </div>
+      </div>
+      <div class="review-card-text">${escHtml(r.text)}</div>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadReviews() {
+  try {
+    const res = await fetch('/reviews');
+    const data = await res.json();
+    renderReviews(data.reviews || []);
+  } catch {
+    document.getElementById('review-list').innerHTML =
+      '<div class="review-empty">Could not load reviews.</div>';
+  }
+}
+
+async function submitReview() {
+  const name   = document.getElementById('rv-name').value.trim() || 'Anonymous';
+  const text   = document.getElementById('rv-text').value.trim();
+  const msg    = document.getElementById('rv-msg');
+  const btn    = document.getElementById('rv-submit');
+
+  msg.className = 'review-form-msg';
+  msg.textContent = '';
+
+  if (!_selectedRating) {
+    msg.className = 'review-form-msg error';
+    msg.textContent = 'Please pick a star rating.';
+    return;
+  }
+  if (!text) {
+    msg.className = 'review-form-msg error';
+    msg.textContent = 'Please write something before submitting.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    const res = await fetch('/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, rating: _selectedRating, text }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
+
+    msg.className = 'review-form-msg success';
+    msg.textContent = '✓ Review submitted — thank you!';
+    document.getElementById('rv-name').value = '';
+    document.getElementById('rv-text').value = '';
+    _selectedRating = 0;
+    updateStars(0, 0);
+    await loadReviews();
+  } catch (e) {
+    msg.className = 'review-form-msg error';
+    msg.textContent = e.message || 'Failed to submit. Try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Review';
+  }
+}
+
+loadReviews();
+</script>
+
+</body>
+</html>

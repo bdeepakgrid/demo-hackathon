@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch & Monitor — SynthScan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--bg:#F7F4EF;--surface:#ffffff;
+  --orange:#E8420A;--orange-light:#FFF0EB;--orange-mid:#FDDDD4;
+  --navy:#1B2B6B;--teal:#00A896;--teal-light:#E0F5F3;
+  --green:#16A34A;--green-light:#F0FDF4;--green-border:#BBF7D0;
+  --red:#DC2626;--red-light:#FEF2F2;--red-border:#FECACA;
+  --amber:#D97706;--amber-light:#FFFBEB;--amber-border:#FDE68A;
+  --purple:#7C3AED;--purple-light:#F5F3FF;
+  --text:#1A1A2E;--text-mid:#4B5563;--text-muted:#9CA3AF;
+  --border:#E5E7EB;--border-dark:#D1D5DB;
+  --shadow:0 2px 16px rgba(26,26,46,.07);
+  --shadow-lg:0 8px 40px rgba(26,26,46,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(247,244,239,.94);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:0 2.5rem;height:66px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-mark{width:36px;height:36px;background:var(--orange);border-radius:10px;
+  display:flex;align-items:center;justify-content:center}
+.nav-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);letter-spacing:-.02em}
+.nav-logo-text span{color:var(--orange)}
+.nav-right{display:flex;align-items:center;gap:16px}
+.nav-back{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:500;
+  color:var(--text-mid);text-decoration:none;transition:color .2s}
+.nav-back:hover{color:var(--orange)}
+.nav-badge{background:var(--orange-light);border:1px solid var(--orange-mid);
+  color:var(--orange);font-size:.78rem;font-weight:700;padding:5px 14px;
+  border-radius:20px;letter-spacing:.05em;font-family:'Syne',sans-serif}
+
+/* PAGE HEADER */
+.page-header{background:var(--white);border-bottom:1px solid var(--border);padding:2.5rem 2.5rem 2rem}
+.page-header-inner{max-width:1200px;margin:0 auto}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-muted);margin-bottom:1rem}
+.breadcrumb a{color:var(--text-muted);text-decoration:none}.breadcrumb a:hover{color:var(--orange)}
+.breadcrumb-sep{color:var(--border-dark)}
+.page-title{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;
+  color:var(--text);letter-spacing:-.025em;margin-bottom:.5rem}
+.page-title span{color:var(--orange)}
+.page-desc{font-size:1rem;color:var(--text-mid);line-height:1.6}
+
+/* TABS */
+.tabs{max-width:1200px;margin:0 auto;padding:1.5rem 2.5rem 0;display:flex;gap:4px}
+.tab{padding:10px 22px;border-radius:8px 8px 0 0;font-family:'Syne',sans-serif;
+  font-size:.84rem;font-weight:700;letter-spacing:.05em;cursor:pointer;
+  border:1px solid transparent;border-bottom:none;transition:all .2s}
+.tab.active{background:var(--white);border-color:var(--border);color:var(--orange)}
+.tab:not(.active){color:var(--text-muted);background:transparent}
+.tab:not(.active):hover{color:var(--text)}
+
+/* MAIN */
+.main{max-width:1200px;margin:0 auto;padding:0 2.5rem 3rem}
+.panel{display:none;background:var(--white);border:1px solid var(--border);
+  border-radius:0 12px 12px 12px;box-shadow:var(--shadow);padding:2rem}
+.panel.active{display:block}
+
+/* ── BATCH PANEL ── */
+.batch-drop{border:2px dashed var(--border-dark);border-radius:12px;min-height:180px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;cursor:pointer;transition:all .22s;background:var(--bg);position:relative}
+.batch-drop:hover,.batch-drop.over{border-color:var(--orange);background:var(--orange-light)}
+.batch-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{width:52px;height:52px;background:var(--orange-light);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--orange-mid)}
+.drop-main{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--text)}
+.drop-sub{font-size:.8rem;color:var(--text-muted)}
+
+.file-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:1rem}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);
+  border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;color:var(--text-mid)}
+.chip-del{cursor:pointer;color:var(--text-muted);font-size:14px;line-height:1;
+  width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;transition:background .15s}
+.chip-del:hover{background:var(--red-light);color:var(--red)}
+
+.batch-controls{display:flex;align-items:center;gap:12px;margin-top:1.25rem;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--orange);
+  color:white;border:none;border-radius:10px;padding:11px 24px;
+  font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;
+  letter-spacing:.06em;cursor:pointer;transition:all .22s;
+  box-shadow:0 4px 16px rgba(232,66,10,.28)}
+.btn-primary:hover:not(:disabled){background:#C93608;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;background:var(--bg);
+  color:var(--text-mid);border:1px solid var(--border-dark);border-radius:10px;
+  padding:11px 20px;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:600;
+  cursor:pointer;transition:all .2s}
+.btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
+
+.batch-count{font-size:.84rem;color:var(--text-muted)}
+
+/* BATCH PROGRESS */
+.batch-progress{margin-top:1.5rem;display:none}
+.bp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.bp-title{font-family:'Syne',sans-serif;font-size:.84rem;font-weight:700;color:var(--text);letter-spacing:.08em;text-transform:uppercase}
+.bp-stat{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text-muted)}
+.prog-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ff6b35);
+  border-radius:3px;width:0;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* BATCH RESULTS TABLE */
+.results-table{margin-top:1.75rem;display:none}
+.rt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:10px}
+.rt-title{font-family:'Syne',sans-serif;font-size:.84rem;font-weight:700;
+  color:var(--text);letter-spacing:.08em;text-transform:uppercase}
+.rt-summary{display:flex;gap:14px}
+.rt-sum-item{font-size:.8rem;font-weight:600;padding:4px 12px;border-radius:20px}
+.rt-sum-item.synth{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.rt-sum-item.real{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.rt-sum-item.err{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+thead tr{background:var(--bg)}
+th{padding:10px 14px;text-align:left;font-family:'Syne',sans-serif;font-size:.72rem;
+  font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);
+  border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.td-name{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--text);max-width:220px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+  font-size:.74rem;font-weight:700;letter-spacing:.05em;white-space:nowrap}
+.pill.synth{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.pill.real{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.pill.err{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+.risk-badge{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px}
+.risk-HIGH{background:#FEE2E2;color:var(--red)}
+.risk-MED{background:var(--amber-light);color:var(--amber)}
+.risk-LOW{background:var(--green-light);color:var(--green)}
+.conf-bar-wrap{display:flex;align-items:center;gap:8px;min-width:100px}
+.conf-bar{height:5px;border-radius:3px;flex:1;background:var(--border);overflow:hidden}
+.conf-fill{height:100%;border-radius:3px;transition:width .6s}
+.conf-fill.s{background:var(--red)}
+.conf-fill.r{background:var(--green)}
+.conf-pct{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--text-muted);white-space:nowrap}
+
+.export-btn{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;
+  color:var(--text-mid);background:none;border:1px solid var(--border-dark);
+  border-radius:7px;padding:5px 12px;cursor:pointer;transition:all .2s}
+.export-btn:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ── MONITOR PANEL ── */
+.monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:720px){.monitor-grid{grid-template-columns:1fr}}
+
+.mon-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.mon-card-title{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem}
+
+/* status indicator */
+.mon-status{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--border-dark);flex-shrink:0;transition:background .4s}
+.status-dot.on{background:#4ADE80;box-shadow:0 0 8px #4ADE80;animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 6px #4ADE80}50%{box-shadow:0 0 14px #4ADE80}}
+.status-dot.err{background:var(--red);box-shadow:0 0 8px var(--red)}
+.status-text{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--text)}
+.status-sub{font-size:.78rem;color:var(--text-muted);margin-top:1px}
+
+.path-input-wrap{display:flex;gap:8px;margin-bottom:1rem}
+.path-input{flex:1;background:var(--white);border:1px solid var(--border-dark);
+  border-radius:8px;padding:9px 14px;font-family:'JetBrains Mono',monospace;
+  font-size:.82rem;color:var(--text);outline:none}
+.path-input:focus{border-color:var(--orange)}
+.path-input::placeholder{color:var(--text-muted)}
+
+.mon-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-mon-start{background:var(--green);color:white;border:none;border-radius:8px;
+  padding:9px 18px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-mon-start:hover:not(:disabled){background:#15803D}
+.btn-mon-start:disabled{opacity:.4;cursor:not-allowed}
+.btn-mon-stop{background:var(--red-light);color:var(--red);border:1px solid var(--red-border);
+  border-radius:8px;padding:9px 18px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-mon-stop:hover:not(:disabled){background:#FEE2E2}
+.btn-mon-stop:disabled{opacity:.4;cursor:not-allowed}
+
+/* STATS ROW */
+.mon-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.mstat{background:var(--white);border:1px solid var(--border);border-radius:8px;
+  padding:10px;text-align:center}
+.mstat-v{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--orange);display:block}
+.mstat-k{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* EVENT FEED */
+.event-feed{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.feed-header{background:var(--bg);padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.feed-title{font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+.feed-live{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:var(--green)}
+.feed-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:glow 2s ease-in-out infinite}
+.feed-body{height:340px;overflow-y:auto;background:var(--white);padding:10px 0;scroll-behavior:smooth}
+.feed-empty{display:flex;align-items:center;justify-content:center;height:100%;
+  font-size:.84rem;color:var(--text-muted);font-style:italic}
+.event-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;
+  padding:8px 14px;border-bottom:1px solid var(--border);transition:background .15s}
+.event-row:last-child{border-bottom:none}
+.event-row:hover{background:var(--bg)}
+.evt-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.evt-icon.detecting{background:var(--amber-light)}
+.evt-icon.analyzing{background:var(--purple-light)}
+.evt-icon.synth{background:var(--red-light)}
+.evt-icon.real{background:var(--green-light)}
+.evt-icon.err{background:var(--red-light)}
+.evt-icon.system{background:var(--bg);border:1px solid var(--border)}
+.evt-name{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.evt-sub{font-size:.75rem;color:var(--text-muted);margin-top:1px}
+.evt-time{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text-muted);white-space:nowrap;padding-top:2px}
+.evt-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;
+  font-size:.7rem;font-weight:700}
+.evt-pill.synth{background:var(--red-light);color:var(--red)}
+.evt-pill.real{background:var(--green-light);color:var(--green)}
+
+.clear-feed-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);
+  font-size:.74rem;font-weight:600;padding:2px 6px;border-radius:4px;transition:color .2s}
+.clear-feed-btn:hover{color:var(--orange)}
+
+/* REPORT CARD */
+.report-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  padding:1.25rem;margin-top:1.5rem}
+.report-title{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem}
+.report-rows{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
+.rr{display:flex;align-items:center;gap:10px;background:var(--white);
+  border:1px solid var(--border);border-radius:8px;padding:9px 12px}
+.rr-name{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--text);
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rr-conf{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--text-muted);white-space:nowrap}
+.report-empty{font-size:.84rem;color:var(--text-muted);font-style:italic;text-align:center;padding:.75rem}
+
+/* Spinner */
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
+  border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner.dark{border-color:rgba(26,26,46,.2);border-top-color:var(--orange)}
+</style>
+</head>
+<body>
+
+<!-- Chatbot Toggle Button -->
+<button id="chat-toggle" onclick="toggleChat()" style="
+  position:fixed; bottom:24px; right:24px; z-index:1000;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color:white; border:none; border-radius:20px;
+  padding:12px 20px; font-size:14px; font-weight:600;
+  cursor:pointer; box-shadow:0 4px 20px rgba(99,102,241,0.5);
+  display:flex; align-items:center; gap:8px;
+  transition: transform 0.2s, box-shadow 0.2s;"
+  onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(99,102,241,0.65)'"
+  onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(99,102,241,0.5)'">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  Ask AI
+</button>
+
+<!-- Chat Window -->
+<div id="chat-window" style="
+  position:fixed; bottom:90px; right:24px; z-index:1000;
+  width:360px; height:480px; background:white; border-radius:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.2); display:none; flex-direction:column;">
+
+  <div style="background:#6366f1; color:white; padding:16px; border-radius:16px 16px 0 0; font-weight:bold;">
+    SynthScan Assistant
+    <span onclick="toggleChat()" style="float:right; cursor:pointer;">✕</span>
+  </div>
+
+  <div id="chat-messages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+
+  <div style="padding:12px; border-top:1px solid #eee; display:flex; gap:8px;">
+    <input id="chat-input" type="text" placeholder="Ask about AI image detection..."
+      onkeydown="if(event.key==='Enter') sendMessage()"
+      style="flex:1; padding:8px 12px; border:1px solid #ddd; border-radius:8px; outline:none;" />
+    <button onclick="sendMessage()" style="
+      background:#6366f1; color:white; border:none; border-radius:8px;
+      padding:8px 14px; cursor:pointer;">Send</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="5" stroke="white" stroke-width="1.8"/>
+        <path d="M10 2v3M10 15v3M2 10h3M15 10h3" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="10" cy="10" r="2" fill="white"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">Synth<span>Scan</span></span>
+  </a>
+  <div class="nav-right">
+    <a href="analyze.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+      Single Image
+    </a>
+    <a href="webscan.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2c-1.5 1.5-2 3-2 5s.5 3.5 2 5M7 2c1.5 1.5 2 3 2 5s-.5 3.5-2 5M2 7h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Web Scanner
+    </a>
+    <a href="video.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><polygon points="5.5,5 9.5,7 5.5,9" fill="currentColor"/></svg>
+      Video Analysis
+    </a>
+    <a href="index.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10 7H4M7 4l-3 3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to Home
+    </a>
+    <div class="nav-badge">Batch &amp; Monitor</div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="breadcrumb">
+      <a href="index.html">SynthScan</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>Batch &amp; Monitor</span>
+    </div>
+    <h1 class="page-title">Batch &amp; <span>Monitor</span></h1>
+    <p class="page-desc">Upload multiple images at once for batch forensic analysis, or connect a local folder monitor with real-time SSE event reporting.</p>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('batch',this)">📁 Batch Upload</div>
+  <div class="tab" onclick="switchTab('monitor',this)">📡 Folder Monitor</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ══ BATCH PANEL ══════════════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-batch">
+
+    <div class="batch-drop" id="batchDrop">
+      <div class="drop-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="4" stroke="#E8420A" stroke-width="1.8"/>
+          <path d="M12 8v8M8 12l4-4 4 4" stroke="#E8420A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="drop-main">Drop a folder or multiple images here</div>
+      <div class="drop-sub">PNG · JPG · WEBP · up to 20 images per batch</div>
+      <input type="file" id="batchFileIn" accept="image/*" multiple webkitdirectory>
+    </div>
+
+    <!-- also allow plain multi-select without folder -->
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+      <label style="font-size:.82rem;color:var(--text-muted);font-weight:500">Or select files individually:</label>
+      <input type="file" id="batchFilesIn" accept="image/*" multiple
+        style="font-size:.82rem;color:var(--text-mid)">
+    </div>
+
+    <div class="file-chips" id="fileChips"></div>
+
+    <div class="batch-controls">
+      <button class="btn-primary" id="runBatchBtn" disabled onclick="runBatch()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7.5l2 2L10 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analyze Batch
+      </button>
+      <button class="btn-secondary" id="clearBatchBtn" onclick="clearBatch()">Clear</button>
+      <span class="batch-count" id="batchCount"></span>
+    </div>
+
+    <!-- Progress -->
+    <div class="batch-progress" id="batchProgress">
+      <div class="bp-header">
+        <span class="bp-title">Processing</span>
+        <span class="bp-stat" id="bpStat">0 / 0</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-table" id="resultsTable">
+      <div class="rt-header">
+        <span class="rt-title">Results</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="rt-summary">
+            <span class="rt-sum-item synth" id="sumSynth">0 Synthetic</span>
+            <span class="rt-sum-item real" id="sumReal">0 Authentic</span>
+            <span class="rt-sum-item err" id="sumErr" style="display:none">0 Errors</span>
+          </div>
+          <button class="export-btn" onclick="exportCSV()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v8M3.5 6l3 3 3-3M1.5 10.5h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>File</th>
+              <th>Verdict</th>
+              <th>Risk</th>
+              <th>Confidence</th>
+              <th>Synth %</th>
+            </tr>
+          </thead>
+          <tbody id="batchTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /panel-batch -->
+
+  <!-- ══ MONITOR PANEL ════════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-monitor">
+
+    <div class="monitor-grid">
+
+      <!-- LEFT: controls -->
+      <div>
+        <div class="mon-card" style="margin-bottom:1rem">
+          <div class="mon-card-title">Monitor Status</div>
+
+          <div class="mon-status">
+            <div class="status-dot" id="statusDot"></div>
+            <div>
+              <div class="status-text" id="statusText">Inactive</div>
+              <div class="status-sub" id="statusSub">No folder is being monitored</div>
+            </div>
+          </div>
+
+          <div class="path-input-wrap">
+            <input class="path-input" id="monPathInput"
+              placeholder="/path/to/folder  (default: ./watch_folder)"
+              type="text">
+          </div>
+
+          <div class="mon-btns">
+            <button class="btn-mon-start" id="startMonBtn" onclick="startMonitor()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 5l3 2-3 2V5z" fill="currentColor"/></svg>
+              Start Monitor
+            </button>
+            <button class="btn-mon-stop" id="stopMonBtn" disabled onclick="stopMonitor()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="5" width="4" height="4" rx="1" fill="currentColor"/></svg>
+              Stop
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mon-card">
+          <div class="mon-card-title">Session Stats</div>
+          <div class="mon-stats">
+            <div class="mstat"><span class="mstat-v" id="msTotal">0</span><span class="mstat-k">Scanned</span></div>
+            <div class="mstat"><span class="mstat-v" id="msSynth" style="color:var(--red)">0</span><span class="mstat-k">Synthetic</span></div>
+            <div class="mstat"><span class="mstat-v" id="msReal" style="color:var(--green)">0</span><span class="mstat-k">Authentic</span></div>
+          </div>
+
+          <!-- Report: synthetic files found -->
+          <div class="report-card">
+            <div class="report-title">Synthetic Detections</div>
+            <div class="report-rows" id="reportRows">
+              <div class="report-empty" id="reportEmpty">None detected yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: live event feed -->
+      <div>
+        <div class="mon-card-title" style="margin-bottom:.75rem;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)">Live Event Feed</div>
+        <div class="event-feed">
+          <div class="feed-header">
+            <span class="feed-title">Events</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="feed-live" id="feedLive" style="display:none">
+                <div class="feed-live-dot"></div> LIVE
+              </div>
+              <button class="clear-feed-btn" onclick="clearFeed()">Clear</button>
+            </div>
+          </div>
+          <div class="feed-body" id="feedBody">
+            <div class="feed-empty" id="feedEmpty">Start the monitor to see real-time events</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /monitor-grid -->
+  </div><!-- /panel-monitor -->
+
+</div><!-- /main -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SynthScan — Batch & Monitor UI
+═══════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
+// ── Tabs ──────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  $('panel-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// BATCH UPLOAD
+// ═══════════════════════════════════════════════════════
+
+let batchFiles = [];
+let batchResults = [];
+
+// Drop zone
+const bd = $('batchDrop');
+bd.addEventListener('dragover', e => { e.preventDefault(); bd.classList.add('over'); });
+bd.addEventListener('dragleave', () => bd.classList.remove('over'));
+bd.addEventListener('drop', e => {
+  e.preventDefault(); bd.classList.remove('over');
+  addFiles([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
+});
+
+// Folder picker (webkitdirectory)
+$('batchFileIn').addEventListener('change', e => {
+  addFiles([...e.target.files].filter(f => f.type.startsWith('image/')));
+});
+
+// Plain multi-select
+$('batchFilesIn').addEventListener('change', e => {
+  addFiles([...e.target.files].filter(f => f.type.startsWith('image/')));
+});
+
+function addFiles(newFiles) {
+  const MAX = 20;
+  const available = MAX - batchFiles.length;
+  if (available <= 0) { alert('Batch limit is 20 images.'); return; }
+  const toAdd = newFiles.slice(0, available);
+  if (newFiles.length > available) alert(`Only ${available} slots left. First ${available} files added.`);
+
+  // de-duplicate by name+size
+  const existing = new Set(batchFiles.map(f => f.name + f.size));
+  toAdd.forEach(f => { if (!existing.has(f.name + f.size)) batchFiles.push(f); });
+  renderChips();
+}
+
+function removeFile(idx) {
+  batchFiles.splice(idx, 1);
+  renderChips();
+}
+
+function renderChips() {
+  const container = $('fileChips');
+  container.innerHTML = '';
+  batchFiles.forEach((f, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="#9CA3AF" stroke-width="1.2"/><circle cx="4" cy="4.5" r="1" fill="#9CA3AF"/><path d="M1 8.5l3-2.5 2.5 2.5 2-2 2.5 3" stroke="#9CA3AF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <span class="chip-del" onclick="removeFile(${i})">×</span>
+    `;
+    container.appendChild(chip);
+  });
+  $('runBatchBtn').disabled = batchFiles.length === 0;
+  $('batchCount').textContent = batchFiles.length > 0 ? `${batchFiles.length} image${batchFiles.length > 1 ? 's' : ''} ready` : '';
+}
+
+function clearBatch() {
+  batchFiles = [];
+  batchResults = [];
+  $('batchFileIn').value = '';
+  $('batchFilesIn').value = '';
+  renderChips();
+  $('batchProgress').style.display = 'none';
+  $('resultsTable').style.display = 'none';
+}
+
+async function runBatch() {
+  if (!batchFiles.length) return;
+
+  $('runBatchBtn').disabled = true;
+  $('batchProgress').style.display = 'block';
+  $('resultsTable').style.display = 'none';
+  $('progFill').style.width = '0%';
+  $('bpStat').textContent = `0 / ${batchFiles.length}`;
+
+  const fd = new FormData();
+  batchFiles.forEach(f => fd.append('images', f));
+
+  // Animate progress bar while waiting
+  let fake = 0;
+  const fakeTimer = setInterval(() => {
+    fake = Math.min(fake + 2, 88);
+    $('progFill').style.width = fake + '%';
+  }, 200);
+
+  try {
+    const res = await fetch('/analyze-batch', { method: 'POST', body: fd });
+    clearInterval(fakeTimer);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    batchResults = data.results || [];
+
+    $('progFill').style.width = '100%';
+    $('bpStat').textContent = `${batchResults.length} / ${batchResults.length}`;
+
+    setTimeout(() => renderBatchResults(), 300);
+  } catch (e) {
+    clearInterval(fakeTimer);
+    alert('Batch analysis failed: ' + e.message);
+    $('runBatchBtn').disabled = false;
+    $('batchProgress').style.display = 'none';
+  }
+}
+
+function renderBatchResults() {
+  $('batchProgress').style.display = 'none';
+  $('runBatchBtn').disabled = false;
+  $('resultsTable').style.display = 'block';
+
+  let synthCount = 0, realCount = 0, errCount = 0;
+  const tbody = $('batchTbody');
+  tbody.innerHTML = '';
+
+  batchResults.forEach((r, i) => {
+    const isErr   = !!r.error;
+    const isSynth = r.is_synthetic;
+    const prob    = r.synthetic_probability || 0;
+    const conf    = r.confidence || 0;
+    const risk    = prob >= .85 ? 'HIGH' : prob >= .55 ? 'MED' : 'LOW';
+
+    if (isErr)   errCount++;
+    else if (isSynth) synthCount++;
+    else realCount++;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = isErr
+      ? `<td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:.78rem">${i+1}</td>
+         <td class="td-name">${r.filename || '—'}</td>
+         <td colspan="4"><span class="pill err">⚠ Error: ${r.error}</span></td>`
+      : `<td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:.78rem">${i+1}</td>
+         <td class="td-name" title="${r.filename}">${r.filename || '—'}</td>
+         <td><span class="pill ${isSynth ? 'synth' : 'real'}">${isSynth ? '⚠ Synthetic' : '✓ Authentic'}</span></td>
+         <td><span class="risk-badge risk-${risk}">${risk}</span></td>
+         <td>
+           <div class="conf-bar-wrap">
+             <div class="conf-bar"><div class="conf-fill ${isSynth ? 's' : 'r'}" style="width:${Math.round(conf*100)}%"></div></div>
+             <span class="conf-pct">${Math.round(conf*100)}%</span>
+           </div>
+         </td>
+         <td style="font-family:'JetBrains Mono',monospace;font-size:.82rem;color:${isSynth ? 'var(--red)' : 'var(--green)'}">${Math.round(prob*100)}%</td>`;
+    tbody.appendChild(tr);
+  });
+
+  $('sumSynth').textContent = `${synthCount} Synthetic`;
+  $('sumReal').textContent  = `${realCount} Authentic`;
+  if (errCount > 0) {
+    $('sumErr').style.display = '';
+    $('sumErr').textContent = `${errCount} Error${errCount > 1 ? 's' : ''}`;
+  } else {
+    $('sumErr').style.display = 'none';
+  }
+}
+
+function exportCSV() {
+  if (!batchResults.length) return;
+  const rows = [['#','Filename','Verdict','Risk','Confidence','Synthetic %','Error']];
+  batchResults.forEach((r, i) => {
+    const prob = r.synthetic_probability || 0;
+    const risk = prob >= .85 ? 'HIGH' : prob >= .55 ? 'MED' : 'LOW';
+    rows.push([
+      i + 1,
+      r.filename || '',
+      r.error ? 'Error' : r.is_synthetic ? 'SYNTHETIC' : 'AUTHENTIC',
+      r.error ? '' : risk,
+      r.error ? '' : Math.round((r.confidence || 0) * 100) + '%',
+      r.error ? '' : Math.round(prob * 100) + '%',
+      r.error || ''
+    ]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a   = document.createElement('a');
+  a.href    = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `synthscan-batch-${Date.now()}.csv`;
+  a.click();
+}
+
+
+// ═══════════════════════════════════════════════════════
+// FOLDER MONITOR + SSE
+// ═══════════════════════════════════════════════════════
+
+let sseSource  = null;
+let monRunning = false;
+let msTotal = 0, msSynth = 0, msReal = 0;
+
+function setMonitorUI(running, path) {
+  monRunning = running;
+  const dot  = $('statusDot');
+  dot.className = 'status-dot' + (running ? ' on' : '');
+  $('statusText').textContent = running ? 'Active' : 'Inactive';
+  $('statusSub').textContent  = running ? `Watching: ${path}` : 'No folder is being monitored';
+  $('startMonBtn').disabled   = running;
+  $('stopMonBtn').disabled    = !running;
+  $('feedLive').style.display = running ? 'flex' : 'none';
+}
+
+async function startMonitor() {
+  const path = $('monPathInput').value.trim();
+  const url  = path ? `/monitor/start?path=${encodeURIComponent(path)}` : '/monitor/start';
+
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+
+    setMonitorUI(true, data.path);
+    startSSE();
+    pushFeedEvent({ type: 'monitor_started', path: data.path });
+  } catch (e) {
+    alert('Failed to start monitor: ' + e.message);
+  }
+}
+
+async function stopMonitor() {
+  try {
+    const res  = await fetch('/monitor/stop');
+    const data = await res.json();
+    stopSSE();
+    setMonitorUI(false, null);
+    pushFeedEvent({ type: 'monitor_stopped', path: data.path });
+  } catch (e) {
+    alert('Failed to stop monitor: ' + e.message);
+  }
+}
+
+function startSSE() {
+  if (sseSource) sseSource.close();
+  sseSource           = new EventSource('/monitor/events');
+  sseSource.onmessage = e => {
+    try { handleEvent(JSON.parse(e.data)); }
+    catch (_) {}
+  };
+  sseSource.onerror = () => {
+    if (!monRunning) stopSSE();
+  };
+}
+
+function stopSSE() {
+  if (sseSource) { sseSource.close(); sseSource = null; }
+}
+
+function handleEvent(ev) {
+  // Update counters
+  if (ev.type === 'result') {
+    msTotal++;
+    if (ev.is_synthetic) {
+      msSynth++;
+      addToReport(ev);
+    } else {
+      msReal++;
+    }
+    $('msTotal').textContent = msTotal;
+    $('msSynth').textContent = msSynth;
+    $('msReal').textContent  = msReal;
+  }
+  pushFeedEvent(ev);
+}
+
+function pushFeedEvent(ev) {
+  const empty = $('feedEmpty');
+  if (empty) empty.remove();
+
+  const feed = $('feedBody');
+  const row  = document.createElement('div');
+  row.className = 'event-row';
+
+  const ts    = ev.ts ? new Date(ev.ts * 1000).toLocaleTimeString() : new Date().toLocaleTimeString();
+  const fname = ev.filename || (ev.path ? ev.path.split(/[\\/]/).pop() : '');
+
+  let iconCls = 'system', iconSVG = '', mainText = '', subText = '', pill = '';
+
+  switch (ev.type) {
+    case 'monitor_started':
+      iconCls = 'system';
+      iconSVG = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#9CA3AF" stroke-width="1.2"/><path d="M5.5 5l3 2-3 2V5z" fill="#9CA3AF"/></svg>';
+      mainText = 'Monitor started';
+      subText  = ev.path || '';
+      break;
+    case 'monitor_stopped':
+      iconCls = 'system';
+      iconSVG = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#9CA3AF" stroke-width="1.2"/><rect x="5" y="5" width="4" height="4" rx="1" fill="#9CA3AF"/></svg>';
+      mainText = 'Monitor stopped';
+      subText  = ev.path || '';
+      break;
+    case 'detected':
+    case 'queued':
+      iconCls = 'detecting';
+      iconSVG = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="#D97706" stroke-width="1.2"/><circle cx="5" cy="5.5" r="1" fill="#D97706"/><path d="M2 10l3-2.5 2.5 2.5 2-2 2.5 3" stroke="#D97706" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      mainText = fname || 'New file detected';
+      subText  = 'Queued for analysis';
+      break;
+    case 'analyzing':
+      iconCls = 'analyzing';
+      iconSVG = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#7C3AED" stroke-width="1.2"/><path d="M7 4v3l2 1.5" stroke="#7C3AED" stroke-width="1.2" stroke-linecap="round"/></svg>';
+      mainText = fname || 'Analyzing…';
+      subText  = 'Running ViT inference + Grad-CAM';
+      break;
+    case 'result':
+      iconCls  = ev.is_synthetic ? 'synth' : 'real';
+      iconSVG  = ev.is_synthetic
+        ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2l5.5 9.5H1.5L7 2z" stroke="#DC2626" stroke-width="1.2" stroke-linejoin="round" fill="#FEE2E2"/><path d="M7 6v2.5M7 10v.5" stroke="#DC2626" stroke-width="1.2" stroke-linecap="round"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#16A34A" stroke-width="1.2" fill="#F0FDF4"/><path d="M4.5 7l2 2L9.5 5.5" stroke="#16A34A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      mainText = fname || ev.path || '—';
+      subText  = `Conf ${Math.round((ev.confidence||0)*100)}%  ·  Synth ${Math.round((ev.synthetic_probability||0)*100)}%`;
+      pill     = `<span class="evt-pill ${ev.is_synthetic ? 'synth' : 'real'}">${ev.label || (ev.is_synthetic ? 'SYNTHETIC' : 'AUTHENTIC')}</span>`;
+      break;
+    case 'error':
+      iconCls = 'err';
+      iconSVG = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#DC2626" stroke-width="1.2" fill="#FEF2F2"/><path d="M7 5v2.5M7 9v.5" stroke="#DC2626" stroke-width="1.2" stroke-linecap="round"/></svg>';
+      mainText = fname || 'Error';
+      subText  = ev.message || 'Unknown error';
+      break;
+  }
+
+  row.innerHTML = `
+    <div class="evt-icon ${iconCls}">${iconSVG}</div>
+    <div>
+      <div class="evt-name" title="${mainText}">${mainText}</div>
+      <div class="evt-sub">${subText} ${pill}</div>
+    </div>
+    <div class="evt-time">${ts}</div>
+  `;
+
+  feed.appendChild(row);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addToReport(ev) {
+  $('reportEmpty') && $('reportEmpty').remove();
+  const rows = $('reportRows');
+  const rr   = document.createElement('div');
+  rr.className = 'rr';
+  rr.innerHTML = `
+    <span class="pill synth" style="flex-shrink:0">⚠</span>
+    <span class="rr-name" title="${ev.path}">${ev.filename || ev.path}</span>
+    <span class="rr-conf">${Math.round((ev.synthetic_probability||0)*100)}%</span>
+    <span class="risk-badge risk-${ev.risk || 'MED'}" style="flex-shrink:0">${ev.risk || 'MED'}</span>
+  `;
+  rows.appendChild(rr);
+}
+
+function clearFeed() {
+  const feed = $('feedBody');
+  feed.innerHTML = '<div class="feed-empty" id="feedEmpty">Feed cleared</div>';
+}
+
+// Poll status on load to recover if server was already running
+(async function pollInitialStatus() {
+  try {
+    const res  = await fetch('/monitor/status');
+    const data = await res.json();
+    if (data.running) {
+      setMonitorUI(true, data.path);
+      startSSE();
+      // Replay recent events
+      (data.recent || []).forEach(ev => pushFeedEvent(ev));
+    }
+  } catch (_) {}
+})();
+</script>
+
+<script>
+  let chatHistory = [];
+  let chatOpen = false;
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chat-window').style.display = chatOpen ? 'flex' : 'none';
+    if (chatOpen && chatHistory.length === 0) {
+      appendMessage('assistant', "Hi! I'm your SynthScan assistant. Ask me anything about AI image detection!");
+    }
+  }
+
+  function appendMessage(role, text) {
+    const box = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.style.cssText = `
+      max-width:80%; padding:10px 14px; border-radius:12px; font-size:14px; line-height:1.5;
+      ${role === 'user'
+        ? 'align-self:flex-end; background:#6366f1; color:white; border-bottom-right-radius:4px;'
+        : 'align-self:flex-start; background:#f3f4f6; color:#111; border-bottom-left-radius:4px;'}
+    `;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    appendMessage('user', message);
+    chatHistory.push({ role: 'user', text: message });
+
+    appendMessage('assistant', '...');
+
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, history: chatHistory.slice(-10) })
+    });
+
+    const msgs = document.getElementById('chat-messages');
+    msgs.removeChild(msgs.lastChild);
+
+    const data = await res.json();
+    const reply = data.reply || data.error || 'Something went wrong.';
+    appendMessage('assistant', reply);
+    chatHistory.push({ role: 'assistant', text: reply });
+  }
+</script>
+</body>
+</html>
